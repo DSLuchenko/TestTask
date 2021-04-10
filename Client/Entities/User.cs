@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-
-namespace CommunicationClassLibrary
+﻿namespace Client.Entities
 {
     public class User
     {

@@ -6,6 +6,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using MySqlConnector;
+using Server.BasicAuth;
 using Server.Tools;
 
 namespace Server
@@ -33,7 +34,10 @@ namespace Server
 
             services.AddHostedService<TimedHostedService>();
 
+            services.AddMvc();
+
             services.AddControllers().AddXmlSerializerFormatters();
+            services.AddControllersWithViews();
         }
 
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)

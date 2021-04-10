@@ -10,10 +10,10 @@ namespace Server.Tools
 
         public static void LoadData()
         {
-            Users = null;
-
             DBManager db = new DBManager();
-            Users = db.GetAllUsers();
+            List<User> loadUsers = db.GetAllUsers();
+            Users = loadUsers;
+            loadUsers = null;
         }
     }
 }

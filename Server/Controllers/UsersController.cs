@@ -1,18 +1,21 @@
 ﻿using System;
+using System.Collections.Generic;
 using Microsoft.AspNetCore.Mvc;
 using System.Linq;
-using System.Xml;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Primitives;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
+using Server.BasicAuth;
 using Server.Models;
 using Server.Models.Entities;
 using Server.Tools;
+using Server.Tools.Communication.Request;
+using Server.Tools.Communication.Response;
 
 namespace Server.Controllers
 {
     [ApiController]
-    public class UsersController : ControllerBase
+    public class UsersController : Controller
     {
         private DBManager db;
 
@@ -24,103 +27,145 @@ namespace Server.Controllers
         [HttpPost("Auth/CreateUser")]
         [BasicAuthorize]
         [Produces("application/xml")]
-        public ActionResult CreateUser([FromBody] XmlDocument newUser)
+        public IActionResult CreateUser([FromBody] CreateUserXml xmlData)
         {
             try
             {
-                string id = newUser["Request"]["user"].GetAttribute("Id");
-                string name = newUser["Request"]["user"].GetAttribute("Name");
-                var status = newUser["Request"]["user"]["Status"].InnerText;
+                User newUser = xmlData.User;
 
-                User user = new User()
+                if (DataStorage.Users.FirstOrDefault(u => u.Id == newUser.Id) != null)
                 {
-                    Id = int.Parse(id),
-                    Name = name,
-                    Status = status
+                    throw new Exception($@"User with id {newUser.Id} already exist");
+                }
+
+                User addedUser = db.CreateUser(newUser);
+
+                if (addedUser == null)
+                {
+                    throw new Exception("User not added, database error!");
+                }
+
+                SuccessCreateUserXml successCreateUser = new SuccessCreateUserXml()
+                {
+                    User = addedUser,
+                    ErrId = "0",
+                    Status = "true"
                 };
 
-                try
-                {
-                    if (DataStorage.Users.FirstOrDefault(u => u.Id == user.Id) != null)
-                    {
-                        throw new Exception();
-                    }
-                    bool result = db.CreateUser(user);
-
-                    XmlDocument doc = new XmlDocument();
-                    XmlElement element1 = doc.CreateElement(string.Empty, "Response", string.Empty);
-                    doc.AppendChild(element1);
-                    element1.SetAttribute("Success", "true");
-                    element1.SetAttribute("ErrorId", "0");
-                    XmlElement element2 = doc.CreateElement(string.Empty, "user", string.Empty);
-                    element1.AppendChild(element2);
-                    element2.SetAttribute("Id", user.Id.ToString());
-                    element2.SetAttribute("Name", user.Name);
-                    XmlElement element3 = doc.CreateElement(string.Empty, "Status", string.Empty);
-                    element3.InnerText = user.Status;
-                    element2.AppendChild(element3);
-
-                    return StatusCode(StatusCodes.Status200OK, doc);
-                }
-                catch
-                {
-                    XmlDocument doc = new XmlDocument();
-                    XmlElement element1 = doc.CreateElement(string.Empty, "Response", string.Empty);
-                    doc.AppendChild(element1);
-                    element1.SetAttribute("Success", "false");
-                    element1.SetAttribute("ErrorId", "1");
-                    XmlElement element2 = doc.CreateElement(string.Empty, "ErrorMsg", string.Empty);
-                    element1.AppendChild(element2);
-                    element2.InnerText = $@"User with id {user.Id} already exist";
-
-                    return StatusCode(StatusCodes.Status500InternalServerError, doc);
-
-                }
+                return Ok(successCreateUser);
             }
             catch (Exception e)
             {
-                return StatusCode(StatusCodes.Status500InternalServerError, e.Message); ;
+                NotSuccessCreateUserXml notSuccessCreateUser = new NotSuccessCreateUserXml()
+                {
+                    ErrId = "1",
+                    ErrorMsg = e.Message,
+                    Status = "false"
+                };
+
+                return BadRequest(notSuccessCreateUser);
             }
 
         }
 
         [HttpPost("Auth/RemoveUser")]
         [BasicAuthorize]
-        public ActionResult RemoveUser([FromBody] object removeUser)
+        [Produces("application/json")]
+        public IActionResult RemoveUser([FromBody] RemoveUserJson jsonData)
         {
-            string id = JObject.Parse(removeUser.ToString())["RemoveUser"]["Id"].ToString();
-
             try
             {
-                User user = db.SetStatus(int.Parse(id), "Deleted");
+                User user = db.SetStatus(jsonData.RemoveUser.Id, "Deleted");
 
-                string jsonUser = JsonConvert.SerializeObject(user);
-                string response = new JObject(new JProperty("Msg", "User was removed"), new JProperty("Success", true), new JProperty("user", JObject.Parse(jsonUser))).ToString();
+                if (user == null)
+                {
+                    throw new Exception("User not found");
+                }
 
-                return StatusCode(StatusCodes.Status200OK, response);
+                SuccessRemoveUserJson successRemoveUser = new SuccessRemoveUserJson()
+                {
+                    Msg = "User was removed",
+                    Success = true,
+                    User = user
+                };
+
+                return Ok(successRemoveUser);
             }
-            catch
+            catch (Exception e)
             {
-                string response = new JObject(new JProperty("ErrorId", 2), new JProperty("Msg", "User not found"), new JProperty("Success", false)).ToString();
-                return StatusCode(StatusCodes.Status500InternalServerError, response);
+                NotSuccessRemoveUserJson notSuccessRemoveUser = new NotSuccessRemoveUserJson()
+                {
+                    ErrorId = 2,
+                    Msg = e.Message,
+                    Success = false
+                };
+
+                return BadRequest(notSuccessRemoveUser);
             }
         }
 
 
         [HttpPost("Auth/SetStatus")]
         [BasicAuthorize]
-        [Produces("application/x-www-form-urlencoded")]
-        public void SetStatus()
+        [Produces("application/json")]
+        public IActionResult SetStatus([FromForm] IFormCollection formData)
         {
+            try
+            {
+                string id = formData["Id"];
+                string status = formData["NewStatus"];
 
+                User user = db.SetStatus(int.Parse(id), status);
+
+                if (user == null)
+                {
+                    throw new Exception("User not found");
+                }
+
+                Dictionary<string, StringValues> formResponse = new Dictionary<string, StringValues>
+                {
+                    {"Id", user.Id.ToString()},
+                    {"Name", user.Name},
+                    {"Status", user.Status}
+                };
+
+                IFormCollection response = new FormCollection(formResponse);
+
+                return Ok(JsonConvert.SerializeObject(response));
+            }
+            catch (Exception e)
+            {
+                NotSuccessRemoveUserJson notSuccessRemoveUser = new NotSuccessRemoveUserJson()
+                {
+                    ErrorId = 2,
+                    Msg = e.Message,
+                    Success = false
+                };
+                return BadRequest(notSuccessRemoveUser);
+            }
         }
 
-        [HttpGet("Public/UserInfo/{id}")]
-        [BasicAuthorize]
+        [HttpGet("Public/UserInfo")]
         [Produces("text/html")]
-        public void UserInfo(int id)
+        public IActionResult UserInfo(int id)
         {
-        }
+            try
+            {
+                User user = DataStorage.Users.FirstOrDefault(u => u.Id == id);
+                if (user==null)
+                {
+                    throw new Exception("User not found");
+                }
+                ViewBag.Title = "UserInfo";
+                return View(user);
+            }
+            catch (Exception e)
+            {
+                ViewBag.Title = "Error";
+                ViewBag.Message = e.Message;
 
+                return View("Error");
+            }
+        }
     }
 }

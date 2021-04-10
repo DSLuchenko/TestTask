@@ -19,7 +19,14 @@ namespace Server.Tools
 
         private void DoWork(object state)
         {
-            DataStorage.LoadData();
+            try
+            {
+                DataStorage.LoadData();
+            }
+            catch
+            {
+                DataStorage.Users = null;
+            }
         }
 
         public Task StopAsync(CancellationToken stoppingToken)

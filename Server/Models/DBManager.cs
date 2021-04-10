@@ -9,85 +9,121 @@ namespace Server.Models
 {
     public class DBManager
     {
+        private MySqlConnection GetConnection()
+        {
+            return new MySqlConnection("server=localhost;user=root;password=1234;database=db_test_task");
+        }
+
         public List<User> GetAllUsers()
         {
-            List<User> users = new List<User>();
-
-            using (MySqlConnection connection = new MySqlConnection("server=localhost;user=root;password=1234;database=db_test_task"))
+            try
             {
-                connection.Open();
+                List<User> users = new List<User>();
 
-                using (MySqlCommand command = connection.CreateCommand())
+                using (MySqlConnection connection = GetConnection())
                 {
-                    command.CommandText = "CALL users_select_all();";
+                    connection.Open();
 
-                    MySqlDataReader reader = command.ExecuteReader();
-
-                    while (reader.Read() == true)
+                    using (MySqlCommand command = connection.CreateCommand())
                     {
-                        users.Add(new User()
+                        command.CommandText = "CALL users_select_all();";
+
+                        MySqlDataReader reader = command.ExecuteReader();
+
+                        while (reader.Read() == true)
                         {
-                            Id = reader.GetInt32("id"),
-                            Name = reader.GetString("name"),
-                            Status = reader.GetString("status")
-                        });
+                            users.Add(new User()
+                            {
+                                Id = reader.GetInt32("id"),
+                                Name = reader.GetString("name"),
+                                Status = reader.GetString("status")
+                            });
+                        }
+                        reader.Close();
                     }
-                    reader.Close();
+                    connection.Close();
                 }
-                connection.Close();
+
+                return users;
+            }
+            catch (Exception e)
+            {
+                throw e;
             }
 
-            return users;
         }
 
         public User SetStatus(int id, string status)
         {
-            using (MySqlConnection connection = new MySqlConnection("server=localhost;user=root;password=1234;database=db_test_task"))
+            try
             {
-                connection.Open();
+                User updateUser = new User();
 
-                using (MySqlCommand command = connection.CreateCommand())
+                using (MySqlConnection connection = GetConnection())
                 {
-                    command.CommandText = $@"CALL users_update_user_status({id},'{status}');";
+                    connection.Open();
 
-                    int affectedRows = command.ExecuteNonQuery();
-
-                    if (affectedRows != 0)
+                    using (MySqlCommand command = connection.CreateCommand())
                     {
-                        DataStorage.Users.FirstOrDefault(u => u.Id == id).Status = status;
-                    }
-                }
-                connection.Close();
-            }
+                        command.CommandText = $@"CALL users_update_user_status({id},'{status}');";
 
-            return DataStorage.Users.FirstOrDefault(u => u.Id == id);
+                        int affectedRows = command.ExecuteNonQuery();
+
+                        if (affectedRows != 0)
+                        {
+                            updateUser = DataStorage.Users.First(u => u.Id == id);
+                            updateUser.Status = status;
+                        }
+                        else
+                        {
+                            updateUser = null;
+                        }
+                    }
+                    connection.Close();
+                }
+
+                return updateUser;
+            }
+            catch (Exception e)
+            {
+                throw e;
+            }
         }
 
-        public bool CreateUser(User user)
+        public User CreateUser(User user)
         {
-            using (MySqlConnection connection = new MySqlConnection("server=localhost;user=root;password=1234;database=db_test_task"))
+            try
             {
-                connection.Open();
+                User createUser = new User();
 
-                using (MySqlCommand command = connection.CreateCommand())
+                using (MySqlConnection connection = GetConnection())
                 {
-                    command.CommandText = $@"CALL users_insert_user({user.Id},'{user.Name}','{user.Status}');";
+                    connection.Open();
 
-                    int affectedRows = command.ExecuteNonQuery();
+                    using (MySqlCommand command = connection.CreateCommand())
+                    {
+                        command.CommandText = $@"CALL users_insert_user({user.Id},'{user.Name}','{user.Status}');";
 
-                    if (affectedRows != 0)
-                    {
-                        DataStorage.Users.Add(user);
+                        int affectedRows = command.ExecuteNonQuery();
+
+                        if (affectedRows != 0)
+                        {
+                            createUser = user;
+                            DataStorage.Users.Add(createUser);
+                        }
+                        else
+                        {
+                            return null;
+                        }
                     }
-                    else
-                    {
-                        return false;
-                    }
+                    connection.Close();
                 }
-                connection.Close();
+                return createUser;
             }
-
-            return true;
+            catch (Exception e)
+            {
+                throw e;
+            }
         }
     }
 }
