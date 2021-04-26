@@ -18,10 +18,9 @@ namespace Server.Controllers
     public class UsersController : Controller
     {
         private DBManager db;
-
         public UsersController()
         {
-            db = new DBManager();
+            db = DBManager.GetInstance();
         }
 
         [HttpPost("Auth/CreateUser")]
@@ -38,16 +37,9 @@ namespace Server.Controllers
                     throw new Exception($@"User with id {newUser.Id} already exist");
                 }
 
-                User addedUser = db.CreateUser(newUser);
-
-                if (addedUser == null)
-                {
-                    throw new Exception("User not added, database error!");
-                }
-
                 SuccessCreateUserXml successCreateUser = new SuccessCreateUserXml()
                 {
-                    User = addedUser,
+                    User = newUser,
                     ErrId = "0",
                     Status = "true"
                 };
@@ -76,11 +68,6 @@ namespace Server.Controllers
             try
             {
                 User user = db.SetStatus(jsonData.RemoveUser.Id, "Deleted");
-
-                if (user == null)
-                {
-                    throw new Exception("User not found");
-                }
 
                 SuccessRemoveUserJson successRemoveUser = new SuccessRemoveUserJson()
                 {
@@ -117,11 +104,6 @@ namespace Server.Controllers
 
                 User user = db.SetStatus(int.Parse(id), status);
 
-                if (user == null)
-                {
-                    throw new Exception("User not found");
-                }
-
                 Dictionary<string, StringValues> formResponse = new Dictionary<string, StringValues>
                 {
                     {"Id", user.Id.ToString()},
@@ -152,7 +134,7 @@ namespace Server.Controllers
             try
             {
                 User user = DataStorage.Users.FirstOrDefault(u => u.Id == id);
-                if (user==null)
+                if (user == null)
                 {
                     throw new Exception("User not found");
                 }

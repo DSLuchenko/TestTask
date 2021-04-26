@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using Microsoft.Extensions.Configuration;
 using MySqlConnector;
 using Server.Models.Entities;
 using Server.Tools;
@@ -9,9 +11,41 @@ namespace Server.Models
 {
     public class DBManager
     {
-        private MySqlConnection GetConnection()
+        private static DBManager instance = null;
+        private static readonly object dbLock = new object();
+        private readonly IConfigurationRoot configuration;
+
+        private DBManager()
         {
-            return new MySqlConnection("server=localhost;user=root;password=1234;database=db_test_task");
+            configuration = GetConfiguration();
+        }
+
+        public static DBManager GetInstance()
+        {
+            if (instance == null)
+            {
+                lock (dbLock)
+                {
+                    if (instance == null)
+                    {
+                        instance = new DBManager();
+                    }
+                }
+            }
+
+            return instance;
+        }
+
+        private IConfigurationRoot GetConfiguration()
+        {
+            IConfigurationBuilder builder = new ConfigurationBuilder().SetBasePath(Directory.GetCurrentDirectory())
+                .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true);
+            return builder.Build();
+        }
+
+        private MySqlConnection GetConnetction()
+        {
+            return new MySqlConnection(configuration.GetSection("ConnectionStrings").GetSection("MySQL").Value);
         }
 
         public List<User> GetAllUsers()
@@ -20,7 +54,7 @@ namespace Server.Models
             {
                 List<User> users = new List<User>();
 
-                using (MySqlConnection connection = GetConnection())
+                using (MySqlConnection connection = GetConnetction())
                 {
                     connection.Open();
 
@@ -50,7 +84,6 @@ namespace Server.Models
             {
                 throw e;
             }
-
         }
 
         public User SetStatus(int id, string status)
@@ -59,7 +92,7 @@ namespace Server.Models
             {
                 User updateUser = new User();
 
-                using (MySqlConnection connection = GetConnection())
+                using (MySqlConnection connection = GetConnetction())
                 {
                     connection.Open();
 
@@ -76,7 +109,7 @@ namespace Server.Models
                         }
                         else
                         {
-                            updateUser = null;
+                            throw new Exception("User not found");
                         }
                     }
                     connection.Close();
@@ -90,13 +123,11 @@ namespace Server.Models
             }
         }
 
-        public User CreateUser(User user)
+        public void CreateUser(User user)
         {
             try
             {
-                User createUser = new User();
-
-                using (MySqlConnection connection = GetConnection())
+                using (MySqlConnection connection = GetConnetction())
                 {
                     connection.Open();
 
@@ -108,17 +139,15 @@ namespace Server.Models
 
                         if (affectedRows != 0)
                         {
-                            createUser = user;
-                            DataStorage.Users.Add(createUser);
+                            DataStorage.Users.Add(user);
                         }
                         else
                         {
-                            return null;
+                            throw new Exception("User not added, database error!");
                         }
                     }
                     connection.Close();
                 }
-                return createUser;
             }
             catch (Exception e)
             {
