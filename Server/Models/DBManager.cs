@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using Microsoft.Extensions.Configuration;
 using MySqlConnector;
 using Server.Models.Entities;
@@ -12,7 +13,7 @@ namespace Server.Models
     public class DBManager
     {
         private static DBManager instance = null;
-        private static readonly object dbLock = new object();
+        private readonly object dbLock = new object();
         private readonly IConfigurationRoot configuration;
 
         private DBManager()
@@ -24,13 +25,7 @@ namespace Server.Models
         {
             if (instance == null)
             {
-                lock (dbLock)
-                {
-                    if (instance == null)
-                    {
-                        instance = new DBManager();
-                    }
-                }
+                instance = new DBManager();
             }
 
             return instance;
@@ -52,6 +47,8 @@ namespace Server.Models
         {
             try
             {
+                Monitor.Enter(dbLock);
+
                 List<User> users = new List<User>();
 
                 using (MySqlConnection connection = GetConnetction())
@@ -84,12 +81,18 @@ namespace Server.Models
             {
                 throw e;
             }
+            finally
+            {
+                Monitor.Exit(dbLock);
+            }
         }
 
         public User SetStatus(int id, string status)
         {
             try
             {
+                Monitor.Enter(dbLock);
+
                 User updateUser = new User();
 
                 using (MySqlConnection connection = GetConnetction())
@@ -121,12 +124,18 @@ namespace Server.Models
             {
                 throw e;
             }
+            finally
+            {
+                Monitor.Exit(dbLock);
+            }
         }
 
         public void CreateUser(User user)
         {
             try
             {
+                Monitor.Enter(dbLock);
+
                 using (MySqlConnection connection = GetConnetction())
                 {
                     connection.Open();
@@ -152,6 +161,10 @@ namespace Server.Models
             catch (Exception e)
             {
                 throw e;
+            }
+            finally
+            {
+                Monitor.Exit(dbLock);
             }
         }
     }
