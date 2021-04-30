@@ -47,10 +47,9 @@ namespace Server.Models
         {
             try
             {
-                Monitor.Enter(dbLock);
-
                 List<User> users = new List<User>();
 
+                Monitor.Enter(dbLock);
                 using (MySqlConnection connection = GetConnetction())
                 {
                     connection.Open();
@@ -73,6 +72,7 @@ namespace Server.Models
                         reader.Close();
                     }
                     connection.Close();
+                    Monitor.Exit(dbLock);
                 }
 
                 return users;
@@ -81,20 +81,15 @@ namespace Server.Models
             {
                 throw e;
             }
-            finally
-            {
-                Monitor.Exit(dbLock);
-            }
         }
 
         public User SetStatus(int id, string status)
         {
             try
             {
-                Monitor.Enter(dbLock);
-
                 User updateUser = new User();
 
+                Monitor.Enter(dbLock);
                 using (MySqlConnection connection = GetConnetction())
                 {
                     connection.Open();
@@ -116,6 +111,7 @@ namespace Server.Models
                         }
                     }
                     connection.Close();
+                    Monitor.Exit(dbLock);
                 }
 
                 return updateUser;
@@ -124,10 +120,6 @@ namespace Server.Models
             {
                 throw e;
             }
-            finally
-            {
-                Monitor.Exit(dbLock);
-            }
         }
 
         public void CreateUser(User user)
@@ -135,7 +127,6 @@ namespace Server.Models
             try
             {
                 Monitor.Enter(dbLock);
-
                 using (MySqlConnection connection = GetConnetction())
                 {
                     connection.Open();
@@ -156,15 +147,12 @@ namespace Server.Models
                         }
                     }
                     connection.Close();
+                    Monitor.Exit(dbLock);
                 }
             }
             catch (Exception e)
             {
                 throw e;
-            }
-            finally
-            {
-                Monitor.Exit(dbLock);
             }
         }
     }
