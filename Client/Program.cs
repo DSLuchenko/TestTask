@@ -80,90 +80,119 @@ namespace Client
 
         static async Task<string> PostRemoveUser(int id)
         {
-            JObject jObject = new JObject(new JProperty("RemoveUser", new JObject(new JProperty("Id", id))));
-
-            CreateResponseHeaders("application/json");
-
-            HttpContent content = new StringContent(JsonConvert.SerializeObject(jObject),
-                Encoding.UTF8,
-                "application/json");
-            HttpResponseMessage response = await client.PostAsync("https://localhost:44301/Auth/RemoveUser", content);
-
-            if (response.StatusCode == HttpStatusCode.OK || response.StatusCode == HttpStatusCode.BadRequest)
+            try
             {
-                return await response.Content.ReadAsStringAsync();
+                JObject jObject = new JObject(new JProperty("RemoveUser", new JObject(new JProperty("Id", id))));
+
+                CreateResponseHeaders("application/json");
+
+                HttpContent content = new StringContent(JsonConvert.SerializeObject(jObject),
+                    Encoding.UTF8,
+                    "application/json");
+                HttpResponseMessage response = await client.PostAsync("https://localhost:44301/Auth/RemoveUser", content);
+
+                if (response.StatusCode == HttpStatusCode.OK || response.StatusCode == HttpStatusCode.BadRequest)
+                {
+                    return await response.Content.ReadAsStringAsync();
+                }
+                else
+                {
+                    return $@"StatusCode: {response.StatusCode}";
+                }
             }
-            else
+            catch (Exception e)
             {
-                return $@"StatusCode: {response.StatusCode}";
+                return e.Message;
             }
         }
 
         static async Task<string> PostCreateUser(string id, string name, string status)
         {
-            XmlDocument doc = new XmlDocument();
-            XmlElement element1 = doc.CreateElement(string.Empty, "Request", string.Empty);
-            doc.AppendChild(element1);
-            XmlElement element2 = doc.CreateElement(string.Empty, "user", string.Empty);
-            element1.AppendChild(element2);
-            element2.SetAttribute("Id", id);
-            element2.SetAttribute("Name", name);
-            XmlElement element3 = doc.CreateElement(string.Empty, "Status", string.Empty);
-            element3.InnerText = status;
-            element2.AppendChild(element3);
-
-            CreateResponseHeaders("application/xml");
-
-            HttpContent content = new StringContent(doc.InnerXml, Encoding.UTF8,
-                "application/xml");
-
-            HttpResponseMessage response = await client.PostAsync("https://localhost:44301/Auth/CreateUser", content);
-
-            if (response.StatusCode == HttpStatusCode.OK || response.StatusCode == HttpStatusCode.BadRequest)
+            try
             {
-                return await response.Content.ReadAsStringAsync();
+                XmlDocument doc = new XmlDocument();
+                XmlElement element1 = doc.CreateElement(string.Empty, "Request", string.Empty);
+                doc.AppendChild(element1);
+                XmlElement element2 = doc.CreateElement(string.Empty, "user", string.Empty);
+                element1.AppendChild(element2);
+                element2.SetAttribute("Id", id);
+                element2.SetAttribute("Name", name);
+                XmlElement element3 = doc.CreateElement(string.Empty, "Status", string.Empty);
+                element3.InnerText = status;
+                element2.AppendChild(element3);
+
+                CreateResponseHeaders("application/xml");
+
+                HttpContent content = new StringContent(doc.InnerXml, Encoding.UTF8,
+                    "application/xml");
+
+                HttpResponseMessage response = await client.PostAsync("https://localhost:44301/Auth/CreateUser", content);
+
+                if (response.StatusCode == HttpStatusCode.OK || response.StatusCode == HttpStatusCode.BadRequest)
+                {
+                    return await response.Content.ReadAsStringAsync();
+                }
+                else
+                {
+                    return $@"StatusCode: {response.StatusCode}";
+                }
             }
-            else
+            catch (Exception e)
             {
-                return $@"StatusCode: {response.StatusCode}";
+                return e.Message;
             }
         }
 
         static async Task<string> PostSetStatus(string id, string newStatus)
         {
-            Dictionary<string, string> form = new Dictionary<string, string>();
-            form.Add("Id", id);
-            form.Add("NewStatus", newStatus);
-
-            CreateResponseHeaders("application/x-www-form-urlencoded");
-
-            HttpContent content = new FormUrlEncodedContent(form);
-            HttpResponseMessage response = await client.PostAsync("https://localhost:44301/Auth/SetStatus", content);
-
-            if (response.StatusCode == HttpStatusCode.OK || response.StatusCode == HttpStatusCode.BadRequest)
+            try
             {
-                return await response.Content.ReadAsStringAsync();
+                Dictionary<string, string> form = new Dictionary<string, string>();
+                form.Add("Id", id);
+                form.Add("NewStatus", newStatus);
+
+                CreateResponseHeaders("application/x-www-form-urlencoded");
+
+                HttpContent content = new FormUrlEncodedContent(form);
+                HttpResponseMessage response = await client.PostAsync("https://localhost:44301/Auth/SetStatus", content);
+
+                if (response.StatusCode == HttpStatusCode.OK || response.StatusCode == HttpStatusCode.BadRequest)
+                {
+                    return await response.Content.ReadAsStringAsync();
+                }
+                else
+                {
+                    return $@"StatusCode: {response.StatusCode}";
+                }
             }
-            else
+            catch (Exception e)
             {
-                return $@"StatusCode: {response.StatusCode}";
+                return e.Message;
             }
         }
 
         static async Task<string> GetUserInfo(string id)
         {
-            CreateResponseHeaders("text/html");
-
-            HttpResponseMessage response = await client.GetAsync($"https://localhost:44301/Public/UserInfo?id={id}");
-
-            if (response.StatusCode == HttpStatusCode.OK || response.StatusCode == HttpStatusCode.BadRequest)
+            try
             {
-                return await response.Content.ReadAsStringAsync();
+                CreateResponseHeaders("text/html");
+
+                HttpResponseMessage response = await client.GetAsync($"https://localhost:44301/Public/UserInfo?id={id}");
+
+                if (response.StatusCode == HttpStatusCode.OK || response.StatusCode == HttpStatusCode.BadRequest)
+                {
+                    return await response.Content.ReadAsStringAsync();
+                }
+                else
+                {
+                    return $@"StatusCode: {response.StatusCode}";
+                }
             }
-            else
+            catch (Exception e)
             {
-                return $@"StatusCode: {response.StatusCode}";
+                return e.Message;
             }
+
         }
 
         static string SelectStatus()
