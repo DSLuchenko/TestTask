@@ -6,6 +6,7 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml;
+using System.Xml.Linq;
 using Client.Entities;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -110,7 +111,7 @@ namespace Client
         {
             try
             {
-                XmlDocument doc = new XmlDocument();
+                /*XmlDocument doc = new XmlDocument();
                 XmlElement element1 = doc.CreateElement(string.Empty, "Request", string.Empty);
                 doc.AppendChild(element1);
                 XmlElement element2 = doc.CreateElement(string.Empty, "user", string.Empty);
@@ -119,11 +120,17 @@ namespace Client
                 element2.SetAttribute("Name", name);
                 XmlElement element3 = doc.CreateElement(string.Empty, "Status", string.Empty);
                 element3.InnerText = status;
-                element2.AppendChild(element3);
+                element2.AppendChild(element3);*/
+
+                XElement xml = new XElement("Request",
+                    new XElement("user", new XAttribute("Id", id), new XAttribute("Name", name),
+                        new XElement("Status", status)));
 
                 CreateResponseHeaders("application/xml");
 
-                HttpContent content = new StringContent(doc.InnerXml, Encoding.UTF8,
+                /*HttpContent content = new StringContent(doc.InnerXml, Encoding.UTF8,
+                "application/xml");*/
+                HttpContent content = new StringContent(xml.ToString(), Encoding.UTF8,
                     "application/xml");
 
                 HttpResponseMessage response = await client.PostAsync("https://localhost:44301/Auth/CreateUser", content);

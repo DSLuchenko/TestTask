@@ -1,19 +1,37 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using Microsoft.Extensions.DependencyInjection;
 using Server.Models;
 using Server.Models.Entities;
 
 namespace Server.Tools
 {
-    public static class DataStorage
+    public class DataStorage
     {
-        public static List<User> Users = new List<User>();
+        private readonly IServiceProvider services;
 
-        public static void LoadData()
+        public DataStorage(IServiceProvider services)
         {
-            DBManager db = DBManager.GetInstance();
-            List<User> loadUsers = db.GetAllUsers();
-            Users = loadUsers;
-            loadUsers = null;
+            Users = new List<User>();
+
+            this.services = services;
+        }
+
+        public List<User> Users { get; private set; }
+
+        public void LoadData()
+        {
+            try
+            {
+                var usersManager = services.GetRequiredService<IUsersManager>();
+                List<User> loadUsers = usersManager.GetAllUsers();
+                Users = loadUsers;
+                loadUsers = null;
+            }
+            catch
+            {
+                Users = new List<User>();
+            }
         }
     }
 }

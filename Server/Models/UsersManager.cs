@@ -1,46 +1,32 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Threading;
-using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using MySqlConnector;
 using Server.Models.Entities;
 using Server.Tools;
 
 namespace Server.Models
 {
-    public class DBManager
+    public class UsersManager : IUsersManager
     {
-        private static DBManager instance = null;
-        private readonly object dbLock = new object();
-        private readonly IConfigurationRoot configuration;
+        private readonly object locker = new object();
 
-        private DBManager()
+        private readonly IServiceProvider services;
+        private readonly DataStorage dataStorage;
+
+        public UsersManager(IServiceProvider services)
         {
-            configuration = GetConfiguration();
+            this.services = services;
+            this.dataStorage = this.services.GetRequiredService<DataStorage>();
         }
 
-        public static DBManager GetInstance()
+        private MySqlConnection GetConnection()
         {
-            if (instance == null)
-            {
-                instance = new DBManager();
-            }
+            Settings settings = services.GetRequiredService<Settings>();
 
-            return instance;
-        }
-
-        private IConfigurationRoot GetConfiguration()
-        {
-            IConfigurationBuilder builder = new ConfigurationBuilder().SetBasePath(Directory.GetCurrentDirectory())
-                .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true);
-            return builder.Build();
-        }
-
-        private MySqlConnection GetConnetction()
-        {
-            return new MySqlConnection(configuration.GetSection("ConnectionStrings").GetSection("MySQL").Value);
+            return new MySqlConnection(settings.MySqlConnectionStrings);
         }
 
         public List<User> GetAllUsers()
@@ -49,8 +35,8 @@ namespace Server.Models
             {
                 List<User> users = new List<User>();
 
-                Monitor.Enter(dbLock);
-                using (MySqlConnection connection = GetConnetction())
+                Monitor.Enter(locker);
+                using (MySqlConnection connection = GetConnection())
                 {
                     connection.Open();
 
@@ -72,7 +58,7 @@ namespace Server.Models
                         reader.Close();
                     }
                     connection.Close();
-                    Monitor.Exit(dbLock);
+                    Monitor.Exit(locker);
                 }
 
                 return users;
@@ -89,8 +75,8 @@ namespace Server.Models
             {
                 User updateUser = new User();
 
-                Monitor.Enter(dbLock);
-                using (MySqlConnection connection = GetConnetction())
+                Monitor.Enter(locker);
+                using (MySqlConnection connection = GetConnection())
                 {
                     connection.Open();
 
@@ -102,7 +88,7 @@ namespace Server.Models
 
                         if (affectedRows != 0)
                         {
-                            updateUser = DataStorage.Users.First(u => u.Id == id);
+                            updateUser = dataStorage.Users.First(u => u.Id == id);
                             updateUser.Status = status;
                         }
                         else
@@ -111,7 +97,7 @@ namespace Server.Models
                         }
                     }
                     connection.Close();
-                    Monitor.Exit(dbLock);
+                    Monitor.Exit(locker);
                 }
 
                 return updateUser;
@@ -126,8 +112,8 @@ namespace Server.Models
         {
             try
             {
-                Monitor.Enter(dbLock);
-                using (MySqlConnection connection = GetConnetction())
+                Monitor.Enter(locker);
+                using (MySqlConnection connection = GetConnection())
                 {
                     connection.Open();
 
@@ -139,7 +125,7 @@ namespace Server.Models
 
                         if (affectedRows != 0)
                         {
-                            DataStorage.Users.Add(user);
+                            dataStorage.Users.Add(user);
                         }
                         else
                         {
@@ -147,7 +133,7 @@ namespace Server.Models
                         }
                     }
                     connection.Close();
-                    Monitor.Exit(dbLock);
+                    Monitor.Exit(locker);
                 }
             }
             catch (Exception e)

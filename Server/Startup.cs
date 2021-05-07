@@ -1,11 +1,10 @@
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Server.BasicAuth;
+using Server.Models;
 using Server.Tools;
 
 namespace Server
@@ -29,7 +28,12 @@ namespace Server
                 options.AddPolicy("BasicAuthentication", new AuthorizationPolicyBuilder("BasicAuthentication").RequireAuthenticatedUser().Build());
             });
 
-            services.AddHostedService<TimedHostedService>();
+            services.AddSingleton<Settings>();
+            services.AddSingleton<DataStorage>();
+
+            services.AddTransient<IUsersManager, UsersManager>();
+
+            services.AddHostedService<ReloadDataService>();
 
             services.AddMvc();
 
