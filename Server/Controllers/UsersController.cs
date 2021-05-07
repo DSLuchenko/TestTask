@@ -38,11 +38,6 @@ namespace Server.Controllers
             {
                 User newUser = xmlData.User;
 
-                if (dataStorage.Users.FirstOrDefault(u => u.Id == newUser.Id) != null)
-                {
-                    throw new Exception($@"User with id {newUser.Id} already exist");
-                }
-
                 usersManager.CreateUser(newUser);
 
                 SuccessCreateUserXml successCreateUser = new SuccessCreateUserXml()
@@ -112,16 +107,14 @@ namespace Server.Controllers
 
                 User user = usersManager.SetStatus(int.Parse(id), status);
 
-                Dictionary<string, StringValues> formResponse = new Dictionary<string, StringValues>
+                IFormCollection responseData = new FormCollection(new Dictionary<string, StringValues>()
                 {
                     {"Id", user.Id.ToString()},
                     {"Name", user.Name},
                     {"Status", user.Status}
-                };
+                });
 
-                IFormCollection response = new FormCollection(formResponse);
-
-                return Ok(JsonConvert.SerializeObject(response));
+                return Ok(JsonConvert.SerializeObject(responseData));
             }
             catch (Exception e)
             {
@@ -141,11 +134,7 @@ namespace Server.Controllers
         {
             try
             {
-                User user = dataStorage.Users.FirstOrDefault(u => u.Id == id);
-                if (user == null)
-                {
-                    throw new Exception("User not found");
-                }
+                User user = dataStorage.Users.First(u => u.Id == id);
                 ViewBag.Title = "UserInfo";
                 return View(user);
             }

@@ -73,7 +73,17 @@ namespace Server.Models
         {
             try
             {
-                User updateUser = new User();
+                User updateUser = dataStorage.Users.FirstOrDefault(u => u.Id == id);
+
+                if (updateUser != null && updateUser.Status == status)
+                {
+                    return updateUser;
+                }
+
+                if (updateUser == null)
+                {
+                    throw new Exception("User not found");
+                }
 
                 Monitor.Enter(locker);
                 using (MySqlConnection connection = GetConnection())
@@ -84,16 +94,10 @@ namespace Server.Models
                     {
                         command.CommandText = $@"CALL users_update_user_status({id},'{status}');";
 
-                        int affectedRows = command.ExecuteNonQuery();
-
-                        if (affectedRows != 0)
+                        if (command.ExecuteNonQuery() != 0)
                         {
                             updateUser = dataStorage.Users.First(u => u.Id == id);
                             updateUser.Status = status;
-                        }
-                        else
-                        {
-                            throw new Exception("User not found");
                         }
                     }
                     connection.Close();
@@ -112,6 +116,11 @@ namespace Server.Models
         {
             try
             {
+                if (dataStorage.Users.FirstOrDefault(u => u.Id == user.Id) != null)
+                {
+                    throw new Exception($@"User with id {user.Id} already exist");
+                }
+
                 Monitor.Enter(locker);
                 using (MySqlConnection connection = GetConnection())
                 {
@@ -121,15 +130,9 @@ namespace Server.Models
                     {
                         command.CommandText = $@"CALL users_insert_user({user.Id},'{user.Name}','{user.Status}');";
 
-                        int affectedRows = command.ExecuteNonQuery();
-
-                        if (affectedRows != 0)
+                        if (command.ExecuteNonQuery() != 0)
                         {
                             dataStorage.Users.Add(user);
-                        }
-                        else
-                        {
-                            throw new Exception("User not added, database error!");
                         }
                     }
                     connection.Close();
