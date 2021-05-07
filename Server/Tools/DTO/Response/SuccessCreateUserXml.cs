@@ -1,7 +1,7 @@
 ﻿using System.Xml.Serialization;
 using Server.Models.Entities;
 
-namespace Server.Tools.Communication.Response
+namespace Server.Tools.DTO.Response
 {
     [XmlRoot(ElementName = "Response")]
     public class SuccessCreateUserXml

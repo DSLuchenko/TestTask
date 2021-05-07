@@ -1,6 +1,6 @@
 ﻿using Server.Models.Entities;
 
-namespace Server.Tools.Communication.Response
+namespace Server.Tools.DTO.Response
 {
     public class SuccessRemoveUserJson
     {

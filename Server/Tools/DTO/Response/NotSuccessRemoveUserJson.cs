@@ -1,4 +1,4 @@
-﻿namespace Server.Tools.Communication.Response
+﻿namespace Server.Tools.DTO.Response
 {
     public class NotSuccessRemoveUserJson
     {
