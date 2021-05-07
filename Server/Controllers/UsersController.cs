@@ -3,25 +3,30 @@ using System.Collections.Generic;
 using Microsoft.AspNetCore.Mvc;
 using System.Linq;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Primitives;
 using Newtonsoft.Json;
 using Server.BasicAuth;
 using Server.Models;
 using Server.Models.Entities;
 using Server.Tools;
-using Server.Tools.Communication.Request;
-using Server.Tools.Communication.Response;
+using Server.Tools.DTO.Request;
+using Server.Tools.DTO.Response;
 
 namespace Server.Controllers
 {
     [ApiController]
     public class UsersController : Controller
     {
-        private DBManager db;
-
-        public UsersController()
+        private readonly IServiceProvider services;
+        private readonly IUsersManager usersManager;
+        private readonly DataStorage dataStorage;
+        public UsersController(IServiceProvider services)
         {
-            db = new DBManager();
+            this.services = services;
+
+            usersManager = this.services.GetRequiredService<IUsersManager>();
+            dataStorage = this.services.GetRequiredService<DataStorage>();
         }
 
         [HttpPost("Auth/CreateUser")]
@@ -33,21 +38,16 @@ namespace Server.Controllers
             {
                 User newUser = xmlData.User;
 
-                if (DataStorage.Users.FirstOrDefault(u => u.Id == newUser.Id) != null)
+                if (dataStorage.Users.FirstOrDefault(u => u.Id == newUser.Id) != null)
                 {
                     throw new Exception($@"User with id {newUser.Id} already exist");
                 }
 
-                User addedUser = db.CreateUser(newUser);
-
-                if (addedUser == null)
-                {
-                    throw new Exception("User not added, database error!");
-                }
+                usersManager.CreateUser(newUser);
 
                 SuccessCreateUserXml successCreateUser = new SuccessCreateUserXml()
                 {
-                    User = addedUser,
+                    User = newUser,
                     ErrId = "0",
                     Status = "true"
                 };
@@ -75,12 +75,7 @@ namespace Server.Controllers
         {
             try
             {
-                User user = db.SetStatus(jsonData.RemoveUser.Id, "Deleted");
-
-                if (user == null)
-                {
-                    throw new Exception("User not found");
-                }
+                User user = usersManager.SetStatus(jsonData.RemoveUser.Id, "Deleted");
 
                 SuccessRemoveUserJson successRemoveUser = new SuccessRemoveUserJson()
                 {
@@ -115,12 +110,7 @@ namespace Server.Controllers
                 string id = formData["Id"];
                 string status = formData["NewStatus"];
 
-                User user = db.SetStatus(int.Parse(id), status);
-
-                if (user == null)
-                {
-                    throw new Exception("User not found");
-                }
+                User user = usersManager.SetStatus(int.Parse(id), status);
 
                 Dictionary<string, StringValues> formResponse = new Dictionary<string, StringValues>
                 {
@@ -151,8 +141,8 @@ namespace Server.Controllers
         {
             try
             {
-                User user = DataStorage.Users.FirstOrDefault(u => u.Id == id);
-                if (user==null)
+                User user = dataStorage.Users.FirstOrDefault(u => u.Id == id);
+                if (user == null)
                 {
                     throw new Exception("User not found");
                 }

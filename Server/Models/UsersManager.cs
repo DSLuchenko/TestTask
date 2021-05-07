@@ -1,17 +1,32 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
+using Microsoft.Extensions.DependencyInjection;
 using MySqlConnector;
 using Server.Models.Entities;
 using Server.Tools;
 
 namespace Server.Models
 {
-    public class DBManager
+    public class UsersManager : IUsersManager
     {
+        private readonly object locker = new object();
+
+        private readonly IServiceProvider services;
+        private readonly DataStorage dataStorage;
+
+        public UsersManager(IServiceProvider services)
+        {
+            this.services = services;
+            this.dataStorage = this.services.GetRequiredService<DataStorage>();
+        }
+
         private MySqlConnection GetConnection()
         {
-            return new MySqlConnection("server=localhost;user=root;password=1234;database=db_test_task");
+            Settings settings = services.GetRequiredService<Settings>();
+
+            return new MySqlConnection(settings.MySqlConnectionStrings);
         }
 
         public List<User> GetAllUsers()
@@ -20,6 +35,7 @@ namespace Server.Models
             {
                 List<User> users = new List<User>();
 
+                Monitor.Enter(locker);
                 using (MySqlConnection connection = GetConnection())
                 {
                     connection.Open();
@@ -42,6 +58,7 @@ namespace Server.Models
                         reader.Close();
                     }
                     connection.Close();
+                    Monitor.Exit(locker);
                 }
 
                 return users;
@@ -50,7 +67,6 @@ namespace Server.Models
             {
                 throw e;
             }
-
         }
 
         public User SetStatus(int id, string status)
@@ -59,6 +75,7 @@ namespace Server.Models
             {
                 User updateUser = new User();
 
+                Monitor.Enter(locker);
                 using (MySqlConnection connection = GetConnection())
                 {
                     connection.Open();
@@ -71,15 +88,16 @@ namespace Server.Models
 
                         if (affectedRows != 0)
                         {
-                            updateUser = DataStorage.Users.First(u => u.Id == id);
+                            updateUser = dataStorage.Users.First(u => u.Id == id);
                             updateUser.Status = status;
                         }
                         else
                         {
-                            updateUser = null;
+                            throw new Exception("User not found");
                         }
                     }
                     connection.Close();
+                    Monitor.Exit(locker);
                 }
 
                 return updateUser;
@@ -90,12 +108,11 @@ namespace Server.Models
             }
         }
 
-        public User CreateUser(User user)
+        public void CreateUser(User user)
         {
             try
             {
-                User createUser = new User();
-
+                Monitor.Enter(locker);
                 using (MySqlConnection connection = GetConnection())
                 {
                     connection.Open();
@@ -108,17 +125,16 @@ namespace Server.Models
 
                         if (affectedRows != 0)
                         {
-                            createUser = user;
-                            DataStorage.Users.Add(createUser);
+                            dataStorage.Users.Add(user);
                         }
                         else
                         {
-                            return null;
+                            throw new Exception("User not added, database error!");
                         }
                     }
                     connection.Close();
+                    Monitor.Exit(locker);
                 }
-                return createUser;
             }
             catch (Exception e)
             {

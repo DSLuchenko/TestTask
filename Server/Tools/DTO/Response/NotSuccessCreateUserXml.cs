@@ -1,7 +1,7 @@
 ﻿using System.Runtime.Serialization;
 using System.Xml.Serialization;
 
-namespace Server.Tools.Communication.Response
+namespace Server.Tools.DTO.Response
 {
     [XmlRoot(ElementName = "Response")]
     [DataContract(Namespace = "")]

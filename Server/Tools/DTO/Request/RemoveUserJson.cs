@@ -1,6 +1,6 @@
 ﻿using Newtonsoft.Json;
 
-namespace Server.Tools.Communication.Request
+namespace Server.Tools.DTO.Request
 {
     public class RemoveUserJson
     {

@@ -1,7 +1,7 @@
 ﻿using System.Xml.Serialization;
 using Server.Models.Entities;
 
-namespace Server.Tools.Communication.Request
+namespace Server.Tools.DTO.Request
 {
     [XmlRoot(ElementName = "Request")]
     public class CreateUserXml
