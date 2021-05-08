@@ -46,7 +46,6 @@ namespace Server.Controllers
                     ErrId = "0",
                     Status = "true"
                 };
-
                 return Ok(successCreateUser);
             }
             catch (Exception e)
@@ -57,7 +56,6 @@ namespace Server.Controllers
                     ErrorMsg = e.Message,
                     Status = "false"
                 };
-
                 return BadRequest(notSuccessCreateUser);
             }
 
@@ -78,7 +76,6 @@ namespace Server.Controllers
                     Success = true,
                     User = user
                 };
-
                 return Ok(successRemoveUser);
             }
             catch (Exception e)
@@ -89,7 +86,6 @@ namespace Server.Controllers
                     Msg = e.Message,
                     Success = false
                 };
-
                 return BadRequest(notSuccessRemoveUser);
             }
         }
@@ -113,7 +109,6 @@ namespace Server.Controllers
                     {"Name", user.Name},
                     {"Status", user.Status}
                 });
-
                 return Ok(JsonConvert.SerializeObject(responseData));
             }
             catch (Exception e)
