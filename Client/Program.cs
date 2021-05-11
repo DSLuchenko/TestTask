@@ -1,13 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml;
-using System.Xml.Linq;
-using Client.Entities;
+using System.Xml.Serialization;
+using Client.DTO;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -40,7 +41,7 @@ namespace Client
                         user = CreateUser();
                         Console.Clear();
                         Console.WriteLine("Response:");
-                        Console.WriteLine(await PostCreateUser(user.Id.ToString(), user.Name, user.Status));
+                        Console.WriteLine(await PostCreateUser(user));
                         break;
                     case 2:
                         id = InputId("RemoveUser");
@@ -58,7 +59,7 @@ namespace Client
                         user = SetStatus();
                         Console.Clear();
                         Console.WriteLine("Response:");
-                        Console.WriteLine(await PostSetStatus(user.Id.ToString(), user.Status));
+                        Console.WriteLine(await PostSetStatus(user));
                         break;
                 }
 
@@ -68,7 +69,7 @@ namespace Client
             } while (true);
         }
 
-        static void CreateResponseHeaders(string appType)
+        static void CreateRequestHeaders(string appType)
         {
             client.DefaultRequestHeaders.Accept.Clear();
             byte[] byteArray = Encoding.ASCII.GetBytes("admin:admin");
@@ -83,11 +84,12 @@ namespace Client
         {
             try
             {
-                JObject jObject = new JObject(new JProperty("RemoveUser", new JObject(new JProperty("Id", id))));
+                //JObject jObject = new JObject(new JProperty("RemoveUser", new JObject(new JProperty("Id", id))));
+                var data = JsonConvert.SerializeObject(new JsonRemoveUserDto() { RemoveUser = new RemoveUser() { Id = id } });
 
-                CreateResponseHeaders("application/json");
+                CreateRequestHeaders("application/json");
 
-                HttpContent content = new StringContent(JsonConvert.SerializeObject(jObject),
+                HttpContent content = new StringContent(data,
                     Encoding.UTF8,
                     "application/json");
                 HttpResponseMessage response = await client.PostAsync("https://localhost:44301/Auth/RemoveUser", content);
@@ -107,33 +109,34 @@ namespace Client
             }
         }
 
-        static async Task<string> PostCreateUser(string id, string name, string status)
+        static async Task<string> PostCreateUser(User newUser)
         {
             try
             {
-                /*XmlDocument doc = new XmlDocument();
-                XmlElement element1 = doc.CreateElement(string.Empty, "Request", string.Empty);
-                doc.AppendChild(element1);
-                XmlElement element2 = doc.CreateElement(string.Empty, "user", string.Empty);
-                element1.AppendChild(element2);
-                element2.SetAttribute("Id", id);
-                element2.SetAttribute("Name", name);
-                XmlElement element3 = doc.CreateElement(string.Empty, "Status", string.Empty);
-                element3.InnerText = status;
-                element2.AppendChild(element3);*/
+                CreateRequestHeaders("application/xml");
 
-                XElement xml = new XElement("Request",
-                    new XElement("user", new XAttribute("Id", id), new XAttribute("Name", name),
-                        new XElement("Status", status)));
+                /*using MemoryStream stream = new MemoryStream();
+                using XmlWriter xml = XmlWriter.Create(stream);
+                xml.WriteStartDocument();
+                xml.WriteStartElement("Request");
+                xml.WriteStartElement("user");
+                xml.WriteAttributeString("Id",newUser.Id.ToString());
+                xml.WriteAttributeString("Name",newUser.Name);
+                xml.WriteElementString("Status", newUser.Status);
+                xml.WriteEndElement();
+                xml.Close();
 
-                CreateResponseHeaders("application/xml");
+                stream.Position = 0;
+                HttpResponseMessage response = await client.PostAsync("https://localhost:44301/Auth/CreateUser",
+                    new StreamContent(stream));
+                stream.Close();*/
 
-                /*HttpContent content = new StringContent(doc.InnerXml, Encoding.UTF8,
-                "application/xml");*/
-                HttpContent content = new StringContent(xml.ToString(), Encoding.UTF8,
-                    "application/xml");
-
-                HttpResponseMessage response = await client.PostAsync("https://localhost:44301/Auth/CreateUser", content);
+                using MemoryStream stream = new MemoryStream();
+                XmlSerializer serializer = new XmlSerializer(typeof(XmlRequestDto));
+                serializer.Serialize(XmlWriter.Create(stream), new XmlRequestDto() { User = newUser });
+                stream.Position = 0;
+                HttpResponseMessage response = await client.PostAsync("https://localhost:44301/Auth/CreateUser", new StreamContent(stream));
+                stream.Close();
 
                 if (response.StatusCode == HttpStatusCode.OK || response.StatusCode == HttpStatusCode.BadRequest)
                 {
@@ -150,15 +153,17 @@ namespace Client
             }
         }
 
-        static async Task<string> PostSetStatus(string id, string newStatus)
+        static async Task<string> PostSetStatus(User user)
         {
             try
             {
-                Dictionary<string, string> form = new Dictionary<string, string>();
-                form.Add("Id", id);
-                form.Add("NewStatus", newStatus);
+                Dictionary<string, string> form = new Dictionary<string, string>()
+                {
+                    {"Id", user.Id.ToString() },
+                    {"NewStatus", user.Status }
+                };
 
-                CreateResponseHeaders("application/x-www-form-urlencoded");
+                CreateRequestHeaders("application/x-www-form-urlencoded");
 
                 HttpContent content = new FormUrlEncodedContent(form);
                 HttpResponseMessage response = await client.PostAsync("https://localhost:44301/Auth/SetStatus", content);
@@ -182,7 +187,7 @@ namespace Client
         {
             try
             {
-                CreateResponseHeaders("text/html");
+                CreateRequestHeaders("text/html");
 
                 HttpResponseMessage response = await client.GetAsync($"https://localhost:44301/Public/UserInfo?id={id}");
 

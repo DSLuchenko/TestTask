@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using Microsoft.AspNetCore.Mvc;
 using System.Linq;
+using System.Threading;
+using System.Xml.Linq;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Primitives;
@@ -32,11 +34,20 @@ namespace Server.Controllers
         [HttpPost("Auth/CreateUser")]
         [BasicAuthorize]
         [Produces("application/xml")]
-        public IActionResult CreateUser([FromBody] CreateUserXml xmlData)
+        public IActionResult CreateUser()
         {
             try
             {
-                User newUser = xmlData.User;
+                XElement xmlNewUser = XDocument.LoadAsync(Request.Body, LoadOptions.None, CancellationToken.None).Result
+                    .Element("Request")
+                    .Element("user");
+
+                User newUser = new User()
+                {
+                    Id = int.Parse(xmlNewUser.Attribute("Id").Value),
+                    Name = xmlNewUser.Attribute("Name").Value,
+                    Status = xmlNewUser.Element("Status").Value
+                };
 
                 usersManager.CreateUser(newUser);
 
