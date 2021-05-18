@@ -33,9 +33,10 @@ namespace Server.Models
         {
             try
             {
+                Monitor.TryEnter(locker, TimeSpan.FromSeconds(5));
+
                 List<User> users = new List<User>();
 
-                Monitor.Enter(locker);
                 using (MySqlConnection connection = GetConnection())
                 {
                     connection.Open();
@@ -58,7 +59,6 @@ namespace Server.Models
                         reader.Close();
                     }
                     connection.Close();
-                    Monitor.Exit(locker);
                 }
 
                 return users;
@@ -67,12 +67,18 @@ namespace Server.Models
             {
                 throw e;
             }
+            finally
+            {
+                Monitor.Exit(locker);
+            }
         }
 
         public User SetStatus(int id, string status)
         {
             try
             {
+                Monitor.TryEnter(locker, TimeSpan.FromSeconds(5));
+
                 User updateUser = dataStorage.Users.FirstOrDefault(u => u.Id == id);
 
                 if (updateUser != null && updateUser.Status == status)
@@ -85,7 +91,6 @@ namespace Server.Models
                     throw new Exception("User not found");
                 }
 
-                Monitor.Enter(locker);
                 using (MySqlConnection connection = GetConnection())
                 {
                     connection.Open();
@@ -100,8 +105,9 @@ namespace Server.Models
                             updateUser.Status = status;
                         }
                     }
+
                     connection.Close();
-                    Monitor.Exit(locker);
+
                 }
 
                 return updateUser;
@@ -110,18 +116,23 @@ namespace Server.Models
             {
                 throw e;
             }
+            finally
+            {
+                Monitor.Exit(locker);
+            }
         }
 
         public void CreateUser(User user)
         {
             try
             {
+                Monitor.TryEnter(locker, TimeSpan.FromSeconds(5));
+
                 if (dataStorage.Users.FirstOrDefault(u => u.Id == user.Id) != null)
                 {
                     throw new Exception($@"User with id {user.Id} already exist");
                 }
 
-                Monitor.Enter(locker);
                 using (MySqlConnection connection = GetConnection())
                 {
                     connection.Open();
@@ -136,12 +147,16 @@ namespace Server.Models
                         }
                     }
                     connection.Close();
-                    Monitor.Exit(locker);
                 }
+
             }
             catch (Exception e)
             {
                 throw e;
+            }
+            finally
+            {
+                Monitor.Exit(locker);
             }
         }
     }
