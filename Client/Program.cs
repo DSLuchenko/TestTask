@@ -10,13 +10,12 @@ using System.Xml;
 using System.Xml.Serialization;
 using Client.DTO;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 
 namespace Client
 {
     class Program
     {
-        private static HttpClient client = new HttpClient();
+        private static readonly HttpClient client = new HttpClient();
 
         static async Task Main(string[] args)
         {
@@ -84,8 +83,7 @@ namespace Client
         {
             try
             {
-                //JObject jObject = new JObject(new JProperty("RemoveUser", new JObject(new JProperty("Id", id))));
-                var data = JsonConvert.SerializeObject(new JsonRemoveUserDto() { RemoveUser = new RemoveUser() { Id = id } });
+                string data = JsonConvert.SerializeObject(new JsonRemoveUserDto() { RemoveUser = new RemoveUser() { Id = id } });
 
                 CreateRequestHeaders("application/json");
 
@@ -114,22 +112,6 @@ namespace Client
             try
             {
                 CreateRequestHeaders("application/xml");
-
-                /*using MemoryStream stream = new MemoryStream();
-                using XmlWriter xml = XmlWriter.Create(stream);
-                xml.WriteStartDocument();
-                xml.WriteStartElement("Request");
-                xml.WriteStartElement("user");
-                xml.WriteAttributeString("Id",newUser.Id.ToString());
-                xml.WriteAttributeString("Name",newUser.Name);
-                xml.WriteElementString("Status", newUser.Status);
-                xml.WriteEndElement();
-                xml.Close();
-
-                stream.Position = 0;
-                HttpResponseMessage response = await client.PostAsync("https://localhost:44301/Auth/CreateUser",
-                    new StreamContent(stream));
-                stream.Close();*/
 
                 using MemoryStream stream = new MemoryStream();
                 XmlSerializer serializer = new XmlSerializer(typeof(XmlRequestDto));

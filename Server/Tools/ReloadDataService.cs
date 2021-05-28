@@ -32,9 +32,9 @@ namespace Server.Tools
             return Task.CompletedTask;
         }
 
-        private void DoWork(object state)
+        private async void DoWork(object state)
         {
-            dataStorage.LoadData();
+            await dataStorage.ReloadDataAsync();
         }
 
         public Task StopAsync(CancellationToken stoppingToken)
